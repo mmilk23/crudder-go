@@ -1,0 +1,18 @@
+meta {
+  name: items - delete
+  type: http
+  seq: 9
+}
+
+delete {
+  url: http://localhost:8080/crud/users/11
+  body: json
+  auth: none
+}
+
+body:json {
+  {   "username": "johndoe6",
+      "pwd": "securepassword6",
+      "email": "johndoe6@example6.com"
+  }
+}

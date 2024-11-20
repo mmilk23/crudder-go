@@ -1,0 +1,18 @@
+meta {
+  name: items - update
+  type: http
+  seq: 8
+}
+
+put {
+  url: http://localhost:8080/crud/users/11
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "pwd": "12341234",
+      "username": "updateuser6"
+    }
+}

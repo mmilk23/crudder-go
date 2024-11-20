@@ -1,0 +1,395 @@
+definitions:
+  crudder.ColumnInfo:
+    properties:
+      column_default:
+        type: string
+      column_name:
+        type: string
+      data_type:
+        type: string
+      foreign_key:
+        type: string
+      is_nullable:
+        type: boolean
+      is_primary_key:
+        type: boolean
+      referenced_column:
+        type: string
+      referenced_table:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /crud/{table}:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new record in the specified table. This endpoint requires
+        a valid session token.
+      parameters:
+      - default: users
+        description: Name of the table
+        in: path
+        name: table
+        required: true
+        type: string
+      - description: JSON object for the new record
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Record created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input or JSON decoding error
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Create Record
+      tags:
+      - CRUD
+  /crud/{table}/{id}:
+    delete:
+      description: Deletes a record in the specified table based on the provided ID.
+        This endpoint requires a valid session token.
+      parameters:
+      - default: users
+        description: Name of the table
+        in: path
+        name: table
+        required: true
+        type: string
+      - default: 3
+        description: ID of the record to delete
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Delete successful with affected rows
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid table name or ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized - Session not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Record not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete Record
+      tags:
+      - CRUD
+    get:
+      description: Fetches a specific record from the specified table using its primary
+        key. Requires a valid session token.
+      parameters:
+      - default: users
+        description: Name of the table
+        in: path
+        name: table
+        required: true
+        type: string
+      - default: 1
+        description: ID of the record to retrieve
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: The requested record
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid ID or request parameters
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized or session not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Record not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Retrieve a Record by ID
+      tags:
+      - CRUD
+    put:
+      consumes:
+      - application/json
+      description: Updates a record in the specified table based on the provided ID.
+        This endpoint requires a valid session token.
+      parameters:
+      - default: users
+        description: Name of the table
+        in: path
+        name: table
+        required: true
+        type: string
+      - default: 3
+        description: ID of the record to update
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: JSON object with updated fields
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Record updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input or JSON decoding error
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Record not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Update Record
+      tags:
+      - CRUD
+  /crud/{tableName}:
+    get:
+      description: Retrieves all records from the specified table. This endpoint requires
+        a valid session token.
+      parameters:
+      - default: users
+        description: Name of the table to query
+        in: path
+        name: tableName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of all records
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "401":
+          description: Unauthorized or session not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Retrieve All Records
+      tags:
+      - CRUD
+  /login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Handler for logging into the database. Creates a session for the
+        user after authenticating with the provided credentials.
+      parameters:
+      - default: crudder_user
+        description: Database username
+        in: formData
+        name: username
+        required: true
+        type: string
+      - default: crudder_p455w0rd
+        description: Database password
+        in: formData
+        name: password
+        required: true
+        type: string
+      - default: crudder_db_test
+        description: Database name
+        in: formData
+        name: dbname
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Username and password are required
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+        "500":
+          description: Error connecting to the database
+          schema:
+            type: string
+      summary: Login
+      tags:
+      - Authentication
+  /logout:
+    get:
+      description: Handler for logging out and closing the database connection associated
+        with the session.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: No session found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Logout
+      tags:
+      - Authentication
+  /table-structure:
+    get:
+      description: Handler for retrieving the structure of a specific table, including
+        primary and foreign keys.
+      parameters:
+      - default: users
+        description: Table name
+        in: query
+        name: table
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Table structure retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/crudder.ColumnInfo'
+            type: array
+        "400":
+          description: The parameter 'table' is mandatory
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error querying table structure or processing result
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Table Structure
+      tags:
+      - Database
+  /tables:
+    get:
+      description: Retrieves the names of all tables in the current database schema.
+        Requires a valid database connection from the context.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of table names
+          schema:
+            items:
+              type: string
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List Tables
+      tags:
+      - Database
+swagger: "2.0"

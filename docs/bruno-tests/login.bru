@@ -1,0 +1,17 @@
+meta {
+  name: login
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/login
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  username: crudder_user
+  password: crudder_p455w0rd
+  dbname: crudder_db_test
+}

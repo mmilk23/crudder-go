@@ -1,0 +1,19 @@
+meta {
+  name: items - list all
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:8080/crud/users
+  body: json
+  auth: none
+}
+
+body:json {
+  {   
+      "username": "johndoe",
+      "pwd": "securepassword",
+      "email": "johndoe@example.com"
+  }
+}

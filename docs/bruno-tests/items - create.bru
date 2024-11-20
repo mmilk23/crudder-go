@@ -1,0 +1,18 @@
+meta {
+  name: items - create
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://localhost:8080/crud/users
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "pwd": "12341234",
+      "username": "newuser"
+    }
+}
