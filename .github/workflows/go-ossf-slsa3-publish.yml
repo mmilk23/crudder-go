@@ -1,40 +1,38 @@
-name: SLSA Go releaser
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
 
+# This workflow lets you compile your Go project using a SLSA3 compliant builder.
+# This workflow will generate a so-called "provenance" file describing the steps
+# that were performed to generate the final binary.
+# The project is an initiative of the OpenSSF (openssf.org) and is developed at
+# https://github.com/slsa-framework/slsa-github-generator.
+# The provenance file can be verified using https://github.com/slsa-framework/slsa-verifier.
+# For more information about SLSA and how it improves the supply-chain, visit slsa.dev.
+
+name: SLSA Go releaser
 on:
   workflow_dispatch:
   release:
     types: [created]
 
-permissions:
-  id-token: write      # Necessário para assinar a release.
-  contents: write      # Necessário para enviar os artefatos do release.
-  actions: read        # Para ler o caminho do workflow.
+permissions: read-all
 
 jobs:
+  # ========================================================================================================================================
+  #     Prerequesite: Create a .slsa-goreleaser.yml in the root directory of your project.
+  #       See format in https://github.com/slsa-framework/slsa-github-generator/blob/main/internal/builders/go/README.md#configuration-file
+  #=========================================================================================================================================
   build:
-    runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Step 2: Set up Go environment
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.23
-
-      # Step 3: Install the SLSA Go Releaser
-      - name: Install SLSA Releaser
-        run: |
-          curl -sSL https://github.com/slsa-framework/slsa-goreleaser/releases/download/v1.0.0/slsa-goreleaser-linux-amd64 -o /usr/local/bin/slsa-goreleaser
-          chmod +x /usr/local/bin/slsa-goreleaser
-
-      # Step 4: Run the SLSA Go Releaser to build and release
-      - name: Run SLSA Go Releaser
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          slsa-goreleaser build --id-token="${{ secrets.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}" --binary=myapp
+    permissions:
+      id-token: write # To sign.
+      contents: write # To upload release assets.
+      actions: read   # To read workflow path.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@v1.4.0
+    with:
+      go-version: 1.23
+      # =============================================================================================================
+      #     Optional: For more options, see https://github.com/slsa-framework/slsa-github-generator#golang-projects
+      # =============================================================================================================
 
