@@ -103,5 +103,5 @@ This project was developed as part of a system architecture playground and is no
 If you found this project helpful, please consider giving it a star ⭐️.
 
 ## Contact
-For more information, visit the [GitHub repository](https://github.com/yourusername/crudder-go).
+For more information, visit the [GitHub repository](https://github.com/mmilk23/crudder-go).
 
