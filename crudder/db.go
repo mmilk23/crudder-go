@@ -551,7 +551,10 @@ func (app *App) getDBFromSession(r *http.Request) *sql.DB {
 func (app *App) crudHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	tableName := vars["table"]
-	idParam := vars["id"] // Obtém o id da URL, se presente
+	idParam := vars["id"]
+
+	log.Println("crudHandler {0} {1]}", tableName, idParam)
+
 	if !isAlphaNumeric(tableName) {
 		WriteErrorResponse(w, http.StatusBadRequest, errInvalidInput)
 		return
@@ -562,7 +565,6 @@ func (app *App) crudHandler(w http.ResponseWriter, r *http.Request) {
 		app.createRecord(w, r, tableName)
 	case "GET":
 		if idParam != "" {
-			// Converte o idParam para int e chama readRecord com id específico
 			id, err := strconv.Atoi(idParam)
 			if err != nil {
 				WriteErrorResponse(w, http.StatusBadRequest, errInvalidID)

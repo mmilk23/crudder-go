@@ -1,0 +1,54 @@
+{{define "content"}}    
+    <h1>crudder-go</h1>
+    <div class="login-form">
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <div class="mb-3">
+                <label for="dbname" class="form-label">Database Name</label>
+                <input type="text" class="form-control" id="dbname" name="dbname" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <div id="errorMsg" class="text-danger text-center mt-3" style="display:none;"></div>
+    </div>
+    <div id="github-link">
+        <p>
+            <i class="fab fa-github"></i> Check out the project on GitHub: <a href="https://github.com/mmilk23/crudder-go" target="_blank">crudder-go</a>
+        </p>
+    </div>
+    
+    <script>
+        $(document).ready(function () {
+            $('#loginForm').on('submit', function (e) {
+                e.preventDefault();
+                const formData = $(this).serialize();
+                $.ajax({
+                    type: 'POST',
+                    url: '/api/v1/login',
+                    data: formData,
+                    success: function (response) {
+                        // Assuming response contains successful login status
+                        const username = $('#username').val();
+                        window.location.href = '/welcome?username=' + encodeURIComponent(username);
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 400) {
+                            $('#errorMsg').text('Username and password are required.').show();
+                        } else if (xhr.status === 401) {
+                            $('#errorMsg').text('Invalid credentials. Please try again.').show();
+                        } else {
+                            $('#errorMsg').text('Error connecting to the database.').show();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+{{end}}

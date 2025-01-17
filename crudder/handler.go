@@ -1,6 +1,8 @@
 package crudder
 
 import (
+	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 
@@ -12,23 +14,21 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// ServerInterface define a interface para iniciar o servidor
 type ServerInterface interface {
 	ListenAndServe(addr string, handler http.Handler) error
 }
 
-// RealServer é a implementação padrão de ServerInterface
 type RealServer struct{}
 
-// ListenAndServe inicia o servidor real
 func (r RealServer) ListenAndServe(addr string, handler http.Handler) error {
 	return http.ListenAndServe(addr, handler)
 }
 
-// LoadEnv tenta carregar as variáveis de ambiente do arquivo .env
+var tmpl *template.Template
+
 func LoadEnv() error {
 	if err := godotenv.Load(".env"); err != nil {
-		log.Println("Aviso: arquivo .env não encontrado")
+		log.Println("alert: .env file not found")
 		return err
 	}
 	return nil
@@ -36,22 +36,94 @@ func LoadEnv() error {
 
 func SetupRouter(app *App) *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/login", app.loginHandler).Methods("POST")
-	router.HandleFunc("/logout", app.logoutHandler).Methods("GET")
 
-	router.Handle("/crud/{table}", app.authMiddleware(http.HandlerFunc(app.crudHandler))).Methods("POST", "GET")
-	router.Handle("/crud/{table}/{id:[0-9]+}", app.authMiddleware(http.HandlerFunc(app.crudHandler))).Methods("GET", "PUT", "DELETE")
-	router.Handle("/tables", app.authMiddleware(http.HandlerFunc(app.listTablesHandler)))
-	router.Handle("/table-structure", app.authMiddleware(http.HandlerFunc(app.tableStructureHandler)))
+	apiRouter := router.PathPrefix("/api/v1").Subrouter()
+
+	apiRouter.HandleFunc("/login", app.loginHandler).Methods("POST")
+	apiRouter.HandleFunc("/logout", app.logoutHandler).Methods("GET")
+	apiRouter.Handle("/crud/{table}", app.authMiddleware(http.HandlerFunc(app.crudHandler))).Methods("POST", "GET")
+	apiRouter.Handle("/crud/{table}/{id:[0-9]+}", app.authMiddleware(http.HandlerFunc(app.crudHandler))).Methods("GET", "PUT", "DELETE")
+	apiRouter.Handle("/tables", app.authMiddleware(http.HandlerFunc(app.listTablesHandler)))
+	apiRouter.Handle("/table-structure", app.authMiddleware(http.HandlerFunc(app.tableStructureHandler)))
+
+	router.HandleFunc("/login", app.loginPageHandler)
+	router.HandleFunc("/welcome", app.welcomePageHandler)
+	router.HandleFunc("/table-crud", app.tableCrudPageHandler)
+	router.HandleFunc("/table-crud-edit", app.tableCrudEditPageHandler)
+	router.HandleFunc("/table-crud-delete", app.tableCrudDeletePageHandler)
 
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
-
 	return router
+}
+
+func (app *App) loginPageHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+	}{
+		Title: "Crudder Go:: login",
+	}
+	renderTemplate(w, "launch.html", "login.html", data)
+}
+
+func (app *App) welcomePageHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+	}{
+		Title: "Crudder Go:: welcome",
+	}
+	renderTemplate(w, "base.html", "welcome.html", data)
+}
+
+func (app *App) tableCrudPageHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+	}{
+		Title: "Crudder Go:: ",
+	}
+	renderTemplate(w, "base.html", "table_crud.html", data)
+}
+
+func (app *App) tableCrudEditPageHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+	}{
+		Title: "Crudder Go:: ",
+	}
+	renderTemplate(w, "base.html", "table_crud_edit.html", data)
+}
+
+func (app *App) tableCrudDeletePageHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+	}{
+		Title: "Crudder Go:: ",
+	}
+	renderTemplate(w, "base.html", "table_crud_delete.html", data)
+}
+
+func InitTemplates() {
+	tmpl = template.Must(template.ParseGlob("/static/html/*.html"))
+}
+
+func renderTemplate(w http.ResponseWriter, baseTemplate string, contentTemplate string, data interface{}) {
+	tmpl, err := template.ParseFiles(
+		fmt.Sprintf("static/html/template/%s", baseTemplate),
+		fmt.Sprintf("static/html/%s", contentTemplate),
+	)
+	if err != nil {
+		http.Error(w, "Error loading template: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, baseTemplate, data)
+	if err != nil {
+		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func StartServer(server ServerInterface) {
 	if err := LoadEnv(); err != nil {
-		log.Println("Continuando sem .env")
+		log.Println(".env file not found")
 	}
 
 	app := &App{
@@ -59,8 +131,8 @@ func StartServer(server ServerInterface) {
 	}
 
 	router := SetupRouter(app)
-	log.Println("Server running at http://localhost:8080")
-	err := server.ListenAndServe(":8080", router)
+	log.Println("Server running at http://localhost:9091")
+	err := server.ListenAndServe(":9091", router)
 	if err != nil {
 		log.Fatal(err)
 	}

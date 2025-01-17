@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+</head>
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        height: 100vh;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .navbar {
+        height: 10vh;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+    }
+
+    .navbar span {
+        font-weight: bold;
+    }
+
+    .logout-link {
+        color: white;
+        text-decoration: none;
+    }
+
+    .logout-link:hover {
+        text-decoration: underline;
+    }
+
+    .main-content {
+        display: flex;
+        flex-grow: 1;
+        overflow: auto;
+    }
+
+    .sidebar {
+        width: 30%;
+        max-width: 250px;
+        background-color: #2c3e50;
+        color: white;
+        padding: 20px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sidebar h4 {
+        color: #ffffff;
+        margin-bottom: 10px;
+        flex-shrink: 0;
+    }
+
+    .table-list-container {
+        overflow-y: auto;
+        flex-grow: 1;
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    .table-list-container::-webkit-scrollbar {
+        display: none;
+        /* Chrome, Safari, Opera */
+    }
+
+    .table-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.85em;
+        color: #b0c4de;
+    }
+
+    .table-list li {
+        padding: 3px 0;
+        cursor: pointer;
+    }
+
+    .table-list li a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .table-list li:hover a {
+        text-decoration: underline;
+    }
+
+    .content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .table-container {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        background-color: #ffffff;
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .table-container h5 {
+        margin-top: 10px;
+    }
+
+    .table-bordered {
+        width: 100%;
+        /* A tabela ocupa toda a largura do container */
+        border-collapse: collapse;
+        table-layout: auto;
+    }
+
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        text-align: left;
+        white-space: nowrap;
+        /* Evita quebra de linha nas células */
+    }
+
+    .table-container-fixed-header thead th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .loading,
+    .no-records {
+        text-align: center;
+        margin-top: 20px;
+        color: #666;
+    }
+
+    .pagination {
+        justify-content: center;
+        padding: 10px 0;
+    }
+
+    .pagination .page-item {
+        margin: 0 2px;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    .pagination .page-link {
+        color: #007bff;
+        border-radius: 4px;
+        padding: 8px 12px;
+    }
+
+    .pagination .page-link:hover {
+        background-color: #0056b3;
+        color: white;
+    }
+
+    .form-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .form-container-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+    }
+
+    .form-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 100%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .form-title {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .form-container .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-container label {
+        font-weight: 500;
+        color: #333;
+        display: inline-block;
+        margin-bottom: 5px;
+    }
+
+    .form-container input[type="text"],
+    .form-container select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+
+    /* Ajuste para checkboxes */
+    .form-group-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-group-checkbox label {
+        margin: 0;
+    }
+
+    .btn-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+
+    .btn-container .btn {
+        width: 48%;
+    }
+
+    @media screen and (max-width: 768px) {
+        .sidebar {
+            width: 100%;
+            max-width: none;
+            padding: 10px;
+        }
+
+        .table-container {
+            padding: 5px;
+        }
+
+        .pagination .page-link {
+            padding: 5px 10px;
+        }
+
+        .form-container {
+            max-width: 90%;
+            padding: 15px;
+        }
+    }
+</style>
+
+<body>
+    <div class="navbar">
+        <span id="welcomeMessage">Welcome, Username</span>
+        <a href="#" id="logoutLink" class="logout-link">Logout</a>
+    </div>
+    <div class="main-content">
+        <div class="sidebar">
+            <h4>List of Tables</h4>
+            <div class="table-list-container">
+                <ul class="table-list" id="tableList">
+                    <!-- Tables will be populated here -->
+                </ul>
+            </div>
+        </div>
+        <div class="content">
+            {{template "content" .}}
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Get username from URL parameter or session/local storage and set welcome message
+            const urlParams = new URLSearchParams(window.location.search);
+            let username = urlParams.get('username');
+            if (!username) {
+                username = sessionStorage.getItem('username') || localStorage.getItem('username') || 'User';
+            }
+            $('#welcomeMessage').text('Welcome, ' + username);
+            sessionStorage.setItem('username', username);
+
+            // Fetch tables from /api/v1/tables endpoint and populate the sidebar
+            $.ajax({
+                type: 'GET',
+                url: '/api/v1/tables',
+                success: function (response) {
+                    const tableList = $('#tableList');
+                    response.forEach(function (table) {
+                        tableList.append('<li><a href="./table-crud?table=' + table + '" class="table-link">' + table + '</a></li>');
+                    });
+                },
+                error: function () {
+                    alert('Failed to fetch tables. Please try again later.');
+                }
+            });
+
+            // Logout link handler
+            $('#logoutLink').on('click', function (e) {
+                e.preventDefault();
+                $.ajax({
+                    type: 'GET',
+                    url: '/api/v1/logout',
+                    success: function () {
+                        sessionStorage.removeItem('username');
+                        localStorage.removeItem('username');
+                        window.location.href = './login';
+                    },
+                    error: function () {
+                        alert('Failed to logout. Please try again later.');
+                        sessionStorage.removeItem('username');
+                        localStorage.removeItem('username');
+                        window.location.href = './login';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

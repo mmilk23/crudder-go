@@ -1,0 +1,167 @@
+{{define "content"}}
+<div class="form-container-wrapper">
+    <div class="form-container">
+        <h3 class="form-title">Edit Record</h3>
+        <form id="editForm">
+            <div id="fieldsContainer">
+                <!-- Fields will be dynamically generated here -->
+            </div>
+            <div class="btn-container">
+                <button type="button" id="updateButton" class="btn btn-primary">Update</button>
+                <button type="button" id="cancelButton" class="btn btn-secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tableName = urlParams.get('table');
+        const primaryKeyValue = urlParams.get('id');
+
+        if (!tableName || !primaryKeyValue) {
+            alert('Missing table name or record ID.');
+            window.location.href = './table-crud.html';
+            return;
+        }
+
+        // Display logged-in user's name
+        const username = sessionStorage.getItem('username') || 'User';
+        $('#welcomeMessage').text('Welcome, ' + username);
+
+        // Fetch table structure and record details
+        $.ajax({
+            type: 'GET',
+            url: `/api/v1/table-structure?table=${encodeURIComponent(tableName)}`,
+            success: function (tableStructure) {
+                fetchRecordDetails(tableStructure);
+            },
+            error: function () {
+                alert('Failed to fetch table structure.');
+                window.location.href = './table-crud.html';
+            }
+        });
+
+        function fetchRecordDetails(tableStructure) {
+            $.ajax({
+                type: 'GET',
+                url: `/api/v1/crud/${encodeURIComponent(tableName)}/${encodeURIComponent(primaryKeyValue)}`,
+                success: function (recordDetails) {
+                    populateForm(tableStructure, recordDetails);
+                },
+                error: function () {
+                    alert('Failed to fetch record details.');
+                    window.location.href = './table-crud.html';
+                }
+            });
+        }
+
+        function populateForm(tableStructure, recordDetails) {
+            const fieldsContainer = $('#fieldsContainer');
+
+            tableStructure.forEach(column => {
+                const fieldName = column.column_name;
+                const isPrimaryKey = column.is_primary_key;
+                const fieldValue = recordDetails[fieldName] !== undefined && recordDetails[fieldName] !== null
+                    ? recordDetails[fieldName]
+                    : '';
+
+                let inputField = '';
+
+                if (column.data_type === 'tinyint' || column.data_type === 'bool') {
+                    // Checkbox for boolean fields
+                    const checked = fieldValue === 1 ? 'checked' : '';
+                    inputField = `
+                    <div class="form-group-checkbox">
+                        <input 
+                            type="checkbox" 
+                            id="${fieldName}" 
+                            name="${fieldName}" 
+                            ${checked} 
+                            ${isPrimaryKey ? 'readonly disabled' : ''}
+                        >
+                    </div>
+                `;
+                } else {
+                    // Default input field
+                    inputField = `
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="${fieldName}" 
+                        name="${fieldName}" 
+                        value="${fieldValue}" 
+                        ${isPrimaryKey ? 'readonly disabled' : ''}
+                    >
+                `;
+                }
+
+                const formGroup = `
+                <div class="form-group">
+                    <label for="${fieldName}">${fieldName}</label>
+                    ${inputField}
+                </div>
+            `;
+                fieldsContainer.append(formGroup);
+            });
+        }
+
+        $('#updateButton').on('click', function () {
+            const formData = {};
+
+            // Itera sobre todos os elementos de input dentro do formulário
+            $('#editForm').find('input, select, textarea').each(function () {
+                const input = $(this);
+                const name = input.attr('name');
+
+                if (input.attr('type') === 'checkbox') {
+                    // Checkbox: sempre incluir o campo, com valor 1 (checked) ou 0 (unchecked)
+                    formData[name] = input.is(':checked') ? 1 : 0;
+                } else {
+                    formData[name] = input.val();
+                }
+            });
+
+            console.log('Payload:', formData);
+
+            $.ajax({
+                type: 'PUT',
+                url: `/api/v1/crud/${encodeURIComponent(tableName)}/${encodeURIComponent(primaryKeyValue)}`,
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                success: function () {
+                    alert('Record updated successfully.');
+                    window.location.href = `./table-crud?table=${tableName}`;
+                },
+                error: function (xhr) {
+                    console.error('Error:', xhr.responseText);
+                    alert('Failed to update the record.');
+                }
+            });
+        });
+
+        $('#cancelButton').on('click', function () {
+            window.location.href = `./table-crud?table=${tableName}`;
+        });
+
+        $('#logoutLink').on('click', function (e) {
+            e.preventDefault();
+            $.ajax({
+                type: 'GET',
+                url: '/api/v1/logout',
+                success: function () {
+                    sessionStorage.removeItem('username');
+                    localStorage.removeItem('username');
+                    window.location.href = './index.html';
+                },
+                error: function () {
+                    alert('Failed to logout.');
+                    sessionStorage.removeItem('username');
+                    localStorage.removeItem('username');
+                    window.location.href = './index.html';
+                }
+            });
+        });
+    });
+</script>
+{{end}}

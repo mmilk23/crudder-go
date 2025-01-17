@@ -1,5 +1,5 @@
 -- Criação do banco de dados
-CREATE DATABASE IF NOT EXISTS crudder_db_test;
+-- CREATE DATABASE IF NOT EXISTS crudder_db_test;
 
 -- Uso do banco de dados
 USE crudder_db_test;

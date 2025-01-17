@@ -1,0 +1,241 @@
+{{define "content"}}
+<h2><span id="tableTitle">Table: </span></h2>
+<div class="table-container">
+    <h5>Table Structure</h5>
+    <table class="table table-bordered" id="tableStructure">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Data Type</th>
+                <th>Nullable</th>
+                <th>Primary Key</th>
+                <th>Foreign Key</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Table structure will be populated here -->
+        </tbody>
+    </table>
+    <a id="addRowButton" class="btn-add-row">Add Row</a>
+</div>
+<div class="table-container">
+    <h5>Table Records</h5>
+    <div id="loading" class="loading">Loading, please wait ...</div>
+    <table class="table table-bordered" id="tableRecords" style="display:none;">
+        <thead class="table-container-fixed-header">
+            <tr id="tableRecordsHeader">
+                <!-- Table record headers will be populated here -->
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Table records will be populated here -->
+        </tbody>
+    </table>
+    <div id="noRecordsMessage" class="no-records" style="display: none;">No records found.</div>
+    <nav>
+        <ul id="pagination" class="pagination"></ul>
+    </nav>
+
+    <script>
+        // Variáveis globais
+        let recordsPerPage = 10;
+        let maxPagesVisible = 10;
+        let currentPage = 1;
+        let data = [];
+        let primaryKeyColumn = '';
+        const urlParams = new URLSearchParams(window.location.search);
+        const tableName = urlParams.get('table');
+
+        if (!tableName) {
+            alert('No table selected.');
+            window.location.href = './welcome.html';
+        }
+
+        // Função para buscar a estrutura da tabela
+        function fetchTableStructure() {
+            return $.ajax({
+                type: 'GET',
+                url: `/api/v1/table-structure?table=${encodeURIComponent(tableName)}`,
+                success: function (response) {
+                    const tableStructureBody = $('#tableStructure tbody');
+                    const tableRecordsHeader = $('#tableRecordsHeader');
+                    tableStructureBody.empty();
+                    tableRecordsHeader.empty();
+
+                    response.forEach(function (column) {
+                        tableStructureBody.append(`
+                            <tr>
+                                <td>${column.column_name}</td>
+                                <td>${column.data_type}</td>
+                                <td>${column.is_nullable ? 'Yes' : 'No'}</td>
+                                <td>${column.is_primary_key ? 'Yes' : 'No'}</td>
+                                <td>${column.foreign_key || '-'}</td>
+                            </tr>
+                        `);
+                        tableRecordsHeader.append(`<th>${column.column_name}</th>`);
+
+                        if (column.is_primary_key) {
+                            primaryKeyColumn = column.column_name;
+                        }
+                    });
+
+                    tableRecordsHeader.append('<th>Actions</th>');
+
+                    console.log('Primary Key Column Detected:', primaryKeyColumn);
+                },
+                error: function () {
+                    alert('Failed to fetch table structure. Please try again later.');
+                }
+            });
+        }
+
+        // Função para buscar registros da tabela
+        function fetchTableRecords() {
+            return $.ajax({
+                type: 'GET',
+                url: `/api/v1/crud/${encodeURIComponent(tableName)}`,
+                success: function (response) {
+                    data = response;
+                    $('#loading').hide();
+                    if (data.length > 0) {
+                        $('#tableRecords').show();
+                        renderTable();
+                        renderPagination();
+                    } else {
+                        $('#noRecordsMessage').show();
+                    }
+                },
+                error: function (xhr) {
+                    if (xhr.status === 404) {
+                        $('#loading').hide();
+                        $('#noRecordsMessage').show();
+                    } else {
+                        alert('Failed to fetch table records. Please try again later.');
+                    }
+                }
+            });
+        }
+
+        // Função para renderizar a tabela de registros
+        function renderTable() {
+            const tableBody = $('#tableRecords tbody');
+            tableBody.empty();
+
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = Math.min(startIndex + recordsPerPage, data.length);
+
+            const headerColumns = [];
+            $('#tableRecordsHeader th').each(function () {
+                const columnName = $(this).text().trim();
+                if (columnName !== 'Actions') {
+                    headerColumns.push(columnName);
+                }
+            });
+
+            console.log('Header columns detected:', headerColumns);
+
+            for (let i = startIndex; i < endIndex; i++) {
+                let row = '<tr>';
+
+                headerColumns.forEach(function (header) {
+                    const cellValue = data[i][header] !== undefined && data[i][header] !== null ? data[i][header] : '-';
+                    row += `<td>${cellValue}</td>`;
+                });
+
+                const primaryKeyValue = data[i][primaryKeyColumn];
+
+                if (!primaryKeyValue) {
+                    console.warn(`Full record at index ${i}:`, data[i]);
+                    console.warn(`Primary key '${primaryKeyColumn}' missing for record index ${i}. Skipping row.`);
+                    continue; // Pula este registro
+                }
+
+                row += `
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-button" data-id="${primaryKeyValue}" data-table="${tableName}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger delete-button ms-2" data-id="${primaryKeyValue}" data-table="${tableName}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                row += '</tr>';
+                tableBody.append(row);
+            }
+
+            // Eventos dos botões de ação
+            $('.edit-button').on('click', function () {
+                const recordId = $(this).data('id');
+                if (!primaryKeyColumn || !recordId) {
+                    alert('Invalid primary key or record ID.');
+                    return;
+                }
+                window.location.href = `./table-crud-edit?table=${encodeURIComponent(tableName)}&id=${encodeURIComponent(recordId)}`;
+            });
+
+            $('.delete-button').on('click', function () {
+                const recordId = $(this).data('id');
+                if (!primaryKeyColumn || !recordId) {
+                    alert('Invalid primary key or record ID.');
+                    return;
+                }
+                window.location.href = `./table-crud-delete?table=${encodeURIComponent(tableName)}&id=${encodeURIComponent(recordId)}`;
+            });
+        }
+        
+
+        function renderPagination() {
+            const totalPages = Math.ceil(data.length / recordsPerPage);
+            const pagination = $('#pagination');
+            pagination.empty();
+
+            const startPage = Math.max(1, currentPage - Math.floor(maxPagesVisible / 2));
+            const endPage = Math.min(totalPages, startPage + maxPagesVisible - 1);
+
+            pagination.append(`
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="1">First</a>
+            </li>
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage - 1}">&laquo; Prev</a>
+            </li>
+        `);
+
+            for (let i = startPage; i <= endPage; i++) {
+                pagination.append(`
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `);
+            }
+
+            pagination.append(`
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${currentPage + 1}">Next &raquo;</a>
+            </li>
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${totalPages}">Last</a>
+            </li>
+        `);
+
+            // Evento de clique na paginação
+            pagination.off('click', '.page-link').on('click', '.page-link', function (e) {
+                e.preventDefault();
+                const newPage = parseInt($(this).data('page'));
+                if (!isNaN(newPage) && newPage !== currentPage) {
+                    currentPage = newPage;
+                    renderTable();
+                    renderPagination();
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            // Chama a função para carregar a estrutura e, em seguida, os registros
+            fetchTableStructure().then(fetchTableRecords);
+        });
+    </script>
+
+
+    {{end}}
