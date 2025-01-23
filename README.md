@@ -1,5 +1,13 @@
 # Crudder-Go Project
 
+[![Build Status](https://github.com/mmilk23/crudder-go/actions/workflows/elixir.yml/badge.svg)](https://github.com/mmilk23/crudder-go/actions)
+[![codecov](https://codecov.io/gh/mmilk23/crudder-go/branch/main/graph/badge.svg)](https://codecov.io/gh/mmilk23/crudder-go)
+[![Coverage Status](https://coveralls.io/repos/github/mmilk23/crudder-go/badge.svg)](https://coveralls.io/github/mmilk23/crudder-go)
+![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen)
+[![Last Updated](https://img.shields.io/github/last-commit/mmilk23/crudder-go.svg)](https://github.com/mmilk23/crudder-go/commits/main)
+
+
+
 ## Overview
 **Crudder-Go** is a Go-based application designed to serve as an API for managing database operations, providing a CRUD (Create, Read, Update, Delete) interface for interacting with MySQL. This project leverages modern technologies, including Docker for container orchestration and Swagger for API documentation, making it easy to deploy and integrate.
 
@@ -11,6 +19,9 @@ With a focus on security and scalability, Crudder-Go includes robust session man
 - **Table Management**: Retrieve table structures, list all tables, and interact with database schemas dynamically.
 - **Docker Integration**: Full Docker support, including a Docker Compose setup that brings up both the Go application and a MySQL server effortlessly.
 - **Swagger Documentation**: Easy-to-navigate API documentation that allows you to test and understand all endpoints.
+- new in v2: a visual 
+
+
 
 ## Technologies Used
 - **Go (Golang)**: Main language used for developing the API backend.

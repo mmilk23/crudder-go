@@ -50,6 +50,9 @@
             alert('No table selected.');
             window.location.href = './welcome.html';
         }
+        $('#tableTitle').text('Table: ' + tableName);
+        $('#addRowButton').attr('href', `./table-crud-add?table=${tableName}`);
+
 
         // Função para buscar a estrutura da tabela
         function fetchTableStructure() {

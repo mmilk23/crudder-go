@@ -49,6 +49,7 @@ func SetupRouter(app *App) *mux.Router {
 	router.HandleFunc("/login", app.loginPageHandler)
 	router.HandleFunc("/welcome", app.welcomePageHandler)
 	router.HandleFunc("/table-crud", app.tableCrudPageHandler)
+	router.HandleFunc("/table-crud-add", app.tableCrudAddPageHandler)
 	router.HandleFunc("/table-crud-edit", app.tableCrudEditPageHandler)
 	router.HandleFunc("/table-crud-delete", app.tableCrudDeletePageHandler)
 
@@ -90,6 +91,15 @@ func (app *App) tableCrudEditPageHandler(w http.ResponseWriter, r *http.Request)
 		Title: "Crudder Go:: ",
 	}
 	renderTemplate(w, "base.html", "table_crud_edit.html", data)
+}
+
+func (app *App) tableCrudAddPageHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+	}{
+		Title: "Crudder Go:: ",
+	}
+	renderTemplate(w, "base.html", "table_crud_add.html", data)
 }
 
 func (app *App) tableCrudDeletePageHandler(w http.ResponseWriter, r *http.Request) {
