@@ -1,3 +1,4 @@
+#.github\dependabot.yml
 version: 2
 updates:
   - package-ecosystem: "gomod"
@@ -6,6 +7,6 @@ updates:
       interval: "daily"
 
   - package-ecosystem: "docker"
-      directory: "/"
-      schedule:
-        interval: "weekly"      
+    directory: "/"
+    schedule:
+      interval: "weekly"
