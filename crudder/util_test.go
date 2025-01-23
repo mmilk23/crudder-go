@@ -8,14 +8,14 @@ func TestIsAlphaNumeric(t *testing.T) {
 		input    string
 		expected bool
 	}{
-		{"table123", true},    // Alfanumérico válido
-		{"TableName", true},   // Alfanumérico com letras maiúsculas
-		{"123456", true},      // Apenas números
-		{"table_name", false}, // Inválido devido ao sublinhado
-		{"table-name", false}, // Inválido devido ao traço
-		{"table name", false}, // Inválido devido ao espaço
-		{"table@name", false}, // Inválido devido ao símbolo especial
-		{"", false},           // Inválido devido à string vazia
+		{"table123", true},
+		{"TableName", true},
+		{"123456", true},
+		{"table_name", true},
+		{"table-name", true},
+		{"table name", false},
+		{"table@name", false},
+		{"", false},
 	}
 
 	for _, tt := range tests {
