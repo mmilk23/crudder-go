@@ -5,7 +5,7 @@ go 1.23.1
 require (
 	bou.ke/monkey v1.0.2
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/go-sql-driver/mysql v1.9.0
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.10.0
