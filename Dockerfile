@@ -20,7 +20,7 @@ COPY . .
 RUN go build -o crudder-go
 
 # Stage 2: Run the application
-FROM debian:12
+FROM debian:13
 
 WORKDIR /root/
 
