@@ -1,6 +1,6 @@
 # Dockerfile para corrigir a versão do Go em go.mod
 # Stage 1: Build the Go application
-FROM golang:1.23 AS builder
+FROM golang:1.25 AS builder
 
 WORKDIR /app
 
