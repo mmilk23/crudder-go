@@ -4,6 +4,8 @@
 [![codecov](https://codecov.io/gh/mmilk23/crudder-go/branch/main/graph/badge.svg)](https://codecov.io/gh/mmilk23/crudder-go)
 [![Coverage Status](https://coveralls.io/repos/github/mmilk23/crudder-go/badge.svg)](https://coveralls.io/github/mmilk23/crudder-go)
 ![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mmilk23/crudder-go)](https://goreportcard.com/report/github.com/mmilk23/crudder-go)
+![GitHub go.mod Go version (subdirectory of monorepo)](https://img.shields.io/github/go-mod/go-version/mmilk23/crudder-go)
 [![Last Updated](https://img.shields.io/github/last-commit/mmilk23/crudder-go.svg)](https://github.com/mmilk23/crudder-go/commits/main)
 
 
