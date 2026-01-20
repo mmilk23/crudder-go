@@ -21,7 +21,7 @@ jobs:
         run: docker build -t crudder-go:scan -f Dockerfile .
 
       - name: Trivy scan (HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: "crudder-go:scan"
           format: "table"
