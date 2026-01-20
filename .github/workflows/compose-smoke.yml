@@ -1,0 +1,57 @@
+# .github/workflows/compose-smoke.yml
+name: Compose Smoke Test
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "docker-compose.yaml"
+      - "init.sql"
+      - "my.cnf"
+  workflow_dispatch:
+
+concurrency:
+  group: compose-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate docker compose
+        run: docker compose config -q
+
+      - name: Build and start
+        run: docker compose up -d --build
+
+      - name: Wait for services to become healthy
+        run: |
+          set -euo pipefail
+          for i in {1..60}; do
+            status=$(docker inspect -f '{{.State.Health.Status}}' crudder_app 2>/dev/null || echo "starting")
+            echo "crudder_app health: $status"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Timed out waiting for crudder_app to become healthy"
+          docker compose ps
+          docker compose logs --no-color
+          exit 1
+
+      - name: Smoke request
+        run: |
+          curl -fsS http://localhost:8080/ >/dev/null
+          echo "OK"
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v

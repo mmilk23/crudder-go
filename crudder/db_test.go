@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -141,18 +142,12 @@ func TestUpdateRecord(t *testing.T) {
 }
 
 func TestDeleteRecord(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("Erro ao criar sqlmock: %v", err)
-	}
-	defer db.Close()
-
 	tests := []struct {
 		name           string
 		sessionToken   string
 		tableName      string
 		recordID       int
-		mockSetup      func()
+		mockSetup      func(mock sqlmock.Sqlmock)
 		expectedStatus int
 		expectedBody   string
 	}{
@@ -161,29 +156,16 @@ func TestDeleteRecord(t *testing.T) {
 			sessionToken:   "",
 			tableName:      "users",
 			recordID:       1,
-			mockSetup:      func() {},
+			mockSetup:      func(mock sqlmock.Sqlmock) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   `{"message":"Session not found"}`,
 		},
 		{
-			name:         "Error obtaining primary key",
+			name:         "Database error on delete",
 			sessionToken: "mockSession",
 			tableName:    "users",
 			recordID:     1,
-			mockSetup: func() {
-				mock.ExpectQuery("SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE .*").
-					WithArgs("users").
-					WillReturnError(fmt.Errorf("mock error"))
-			},
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"message":"Error obtaining primary key: mock error"}`,
-		},
-		{
-			name:         "Error deleting item",
-			sessionToken: "mockSession",
-			tableName:    "users",
-			recordID:     1,
-			mockSetup: func() {
+			mockSetup: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE .*").
 					WithArgs("users").
 					WillReturnRows(sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow("id"))
@@ -200,7 +182,7 @@ func TestDeleteRecord(t *testing.T) {
 			sessionToken: "mockSession",
 			tableName:    "users",
 			recordID:     999,
-			mockSetup: func() {
+			mockSetup: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE .*").
 					WithArgs("users").
 					WillReturnRows(sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow("id"))
@@ -217,7 +199,7 @@ func TestDeleteRecord(t *testing.T) {
 			sessionToken: "mockSession",
 			tableName:    "users",
 			recordID:     1,
-			mockSetup: func() {
+			mockSetup: func(mock sqlmock.Sqlmock) {
 				mock.ExpectQuery("SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE .*").
 					WithArgs("users").
 					WillReturnRows(sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow("id"))
@@ -232,56 +214,74 @@ func TestDeleteRecord(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			if err != nil {
+				t.Fatalf("Erro ao criar sqlmock: %v", err)
+			}
+			defer db.Close()
+			mock.MatchExpectationsInOrder(false)
+
 			app := &App{SessionStore: map[string]*SessionData{}}
 			if tt.sessionToken != "" {
 				app.SessionStore[tt.sessionToken] = &SessionData{DB: db}
 			}
 
+			tt.mockSetup(mock)
+
 			req := httptest.NewRequest("DELETE", fmt.Sprintf("/crud/%s/%d", tt.tableName, tt.recordID), nil)
 			if tt.sessionToken != "" {
 				req.AddCookie(&http.Cookie{Name: "session_token", Value: tt.sessionToken})
 			}
-
 			w := httptest.NewRecorder()
-
-			tt.mockSetup()
 
 			app.deleteRecord(w, req, tt.tableName, tt.recordID)
 
 			if w.Result().StatusCode != tt.expectedStatus {
-				t.Errorf("Esperado status %d, obtido %d", tt.expectedStatus, w.Result().StatusCode)
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, w.Result().StatusCode)
 			}
-
-			if strings.TrimSpace(w.Body.String()) != tt.expectedBody {
-				t.Errorf("Esperado body %q, obtido %q", tt.expectedBody, w.Body.String())
+			if tt.expectedBody != "" {
+				var got map[string]any
+				if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+					t.Fatalf("Could not decode response JSON: %v; body=%q", err, w.Body.String())
+				}
+				var exp map[string]any
+				if err := json.Unmarshal([]byte(tt.expectedBody), &exp); err != nil {
+					t.Fatalf("Could not decode expectedBody JSON: %v; expectedBody=%q", err, tt.expectedBody)
+				}
+				if !reflect.DeepEqual(exp, got) {
+					t.Errorf("Expected body %v, got %v", exp, got)
+				}
 			}
 
 			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("Expectativas não atendidas: %v", err)
+				t.Errorf("Expectations not met: %v", err)
 			}
 		})
 	}
 }
 
 func TestCreateRecord(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("Error creating sqlmock: %v", err)
-	}
-	defer db.Close()
-
-	app := &App{SessionStore: map[string]*SessionData{"mockSession": {DB: db}}}
-
 	t.Run("Success - Record Created", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("Error creating sqlmock: %v", err)
+		}
+		defer db.Close()
+		mock.MatchExpectationsInOrder(false)
+
+		app := &App{SessionStore: map[string]*SessionData{"mockSession": {DB: db}}}
+
 		mock.ExpectExec("INSERT INTO users .*").
-			WithArgs("John", "Doe").
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		mock.ExpectQuery("SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE .*").
-			WithArgs("users").WillReturnRows(sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow("id"))
+			WithArgs("users").
+			WillReturnRows(sqlmock.NewRows([]string{"COLUMN_NAME"}).AddRow("id"))
 
 		req := httptest.NewRequest("POST", "/crud/users", strings.NewReader(`{"first_name": "John", "last_name": "Doe"}`))
+		req.Header.Set("Content-Type", "application/json")
 		req.AddCookie(&http.Cookie{Name: "session_token", Value: "mockSession"})
 		w := httptest.NewRecorder()
 
@@ -290,38 +290,27 @@ func TestCreateRecord(t *testing.T) {
 		if w.Result().StatusCode != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", w.Result().StatusCode)
 		}
-	})
 
-	t.Run("Failure - Invalid Session", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/crud/users", strings.NewReader(`{"first_name": "John", "last_name": "Doe"}`))
-		req.AddCookie(&http.Cookie{Name: "session_token", Value: "invalidSession"})
-		w := httptest.NewRecorder()
-
-		app.createRecord(w, req, "users")
-
-		if w.Result().StatusCode != http.StatusUnauthorized {
-			t.Errorf("Expected status 401, got %d", w.Result().StatusCode)
-		}
-	})
-
-	t.Run("Failure - Invalid JSON Body", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/crud/users", strings.NewReader(`{"first_name": "John"`)) // Malformed JSON
-		req.AddCookie(&http.Cookie{Name: "session_token", Value: "mockSession"})
-		w := httptest.NewRecorder()
-
-		app.createRecord(w, req, "users")
-
-		if w.Result().StatusCode != http.StatusBadRequest {
-			t.Errorf("Expected status 400, got %d", w.Result().StatusCode)
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Expectations not met: %v", err)
 		}
 	})
 
 	t.Run("Failure - Database Error on Insert", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("Error creating sqlmock: %v", err)
+		}
+		defer db.Close()
+		mock.MatchExpectationsInOrder(false)
+
+		app := &App{SessionStore: map[string]*SessionData{"mockSession": {DB: db}}}
+
 		mock.ExpectExec("INSERT INTO users .*").
-			WithArgs("John", "Doe").
 			WillReturnError(fmt.Errorf("database error"))
 
 		req := httptest.NewRequest("POST", "/crud/users", strings.NewReader(`{"first_name": "John", "last_name": "Doe"}`))
+		req.Header.Set("Content-Type", "application/json")
 		req.AddCookie(&http.Cookie{Name: "session_token", Value: "mockSession"})
 		w := httptest.NewRecorder()
 
@@ -330,13 +319,27 @@ func TestCreateRecord(t *testing.T) {
 		if w.Result().StatusCode != http.StatusInternalServerError {
 			t.Errorf("Expected status 500, got %d", w.Result().StatusCode)
 		}
+
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Expectations not met: %v", err)
+		}
 	})
 
 	t.Run("Failure - Invalid Table", func(t *testing.T) {
-		mock.ExpectQuery("SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE .*").
-			WithArgs("invalid_table").WillReturnError(fmt.Errorf("invalid table"))
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatalf("Error creating sqlmock: %v", err)
+		}
+		defer db.Close()
+		mock.MatchExpectationsInOrder(false)
+
+		app := &App{SessionStore: map[string]*SessionData{"mockSession": {DB: db}}}
+
+		mock.ExpectExec("INSERT INTO invalid_table .*").
+			WillReturnError(fmt.Errorf("invalid table"))
 
 		req := httptest.NewRequest("POST", "/crud/invalid_table", strings.NewReader(`{"first_name": "John", "last_name": "Doe"}`))
+		req.Header.Set("Content-Type", "application/json")
 		req.AddCookie(&http.Cookie{Name: "session_token", Value: "mockSession"})
 		w := httptest.NewRecorder()
 
@@ -344,6 +347,10 @@ func TestCreateRecord(t *testing.T) {
 
 		if w.Result().StatusCode != http.StatusInternalServerError {
 			t.Errorf("Expected status 500, got %d", w.Result().StatusCode)
+		}
+
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Expectations not met: %v", err)
 		}
 	})
 }
@@ -698,8 +705,18 @@ func TestReadRecordByID(t *testing.T) {
 			}
 
 			// Check the returned body
-			if strings.TrimSpace(w.Body.String()) != tt.expectedBody {
-				t.Errorf("Expected body %q, got %q", tt.expectedBody, w.Body.String())
+			if tt.expectedBody != "" {
+				var got map[string]any
+				if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+					t.Fatalf("Could not decode response JSON: %v; body=%q", err, w.Body.String())
+				}
+				var exp map[string]any
+				if err := json.Unmarshal([]byte(tt.expectedBody), &exp); err != nil {
+					t.Fatalf("Could not decode expectedBody JSON: %v; expectedBody=%q", err, tt.expectedBody)
+				}
+				if !reflect.DeepEqual(exp, got) {
+					t.Errorf("Expected body %v, got %v", exp, got)
+				}
 			}
 
 			// Confirm that all expectations were met

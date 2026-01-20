@@ -1,34 +1,29 @@
-# Dockerfile para corrigir a versão do Go em go.mod
-# Stage 1: Build the Go application
+#./Dockerfile
+
+# Stage 1: Build
 FROM golang:1.25 AS builder
 
 WORKDIR /app
 
-# Copy go.mod and go.sum files
 COPY go.mod go.sum ./
-
-# Corrigir a versão do Go no go.mod para uma versão correta
-RUN sed -i 's/go 1.23.1/go 1.23/' go.mod
-
-# Download dependencies
 RUN go mod download
 
-# Copy the source code
 COPY . .
 
-# Build the Go app
-RUN go build -o crudder-go
+ENV CGO_ENABLED=0
+RUN go build -trimpath -ldflags="-s -w" -o crudder-go
 
-# Stage 2: Run the application
-FROM debian:13
+# Stage 2: Runtime
+FROM debian:13-slim
 
-WORKDIR /root/
+WORKDIR /app
 
-# Copy the Pre-built binary file from the previous stage
-COPY --from=builder /app/crudder-go .
+# CA certs (HTTPS) + curl (healthcheck/smoke test)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/.env ./
+COPY --from=builder /app/crudder-go ./crudder-go
 
 EXPOSE 8080
-
 CMD ["./crudder-go"]

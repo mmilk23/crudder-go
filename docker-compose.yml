@@ -1,4 +1,5 @@
-version: '3.8'
+#./docker-compose.yml
+version: "3.8"
 
 services:
   mysql:
@@ -9,35 +10,58 @@ services:
       MYSQL_DATABASE: testdb
       MYSQL_USER: testuser
       MYSQL_PASSWORD: testpassword
-    ports:
-      - "3306:3306"
+    # Em CI/portfólio, eu evitaria expor 3306 publicamente.
+    # Se você realmente precisar acessar do host, descomente:
+    # ports:
+    #   - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./my.cnf:/etc/mysql/my.cnf
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./my.cnf:/etc/mysql/my.cnf:ro
     networks:
       - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
 
   crudder:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: crudder_app
+
+    env_file:
+      - .env
+
     environment:
       DB_HOST: mysql
       DB_USER: crudder_user
       DB_PASSWORD: crudder_p455w0rd
       DB_NAME: crudder_db_test
+
     ports:
       - "8080:8080"
+
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+
     networks:
       - mynetwork
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/login >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
 
 networks:
   mynetwork:
     driver: bridge
-    
+
 volumes:
   mysql_data:
