@@ -1,6 +1,4 @@
 #./docker-compose.yml
-version: "3.8"
-
 services:
   mysql:
     image: mysql:8.0
@@ -10,8 +8,8 @@ services:
       MYSQL_DATABASE: testdb
       MYSQL_USER: testuser
       MYSQL_PASSWORD: testpassword
-    # Em CI/portfólio, eu evitaria expor 3306 publicamente.
-    # Se você realmente precisar acessar do host, descomente:
+    # Evita expor MySQL no host (mais seguro e mais limpo em CI)
+    # Se precisar localmente, descomente:
     # ports:
     #   - "3306:3306"
     volumes:
@@ -52,11 +50,13 @@ services:
     networks:
       - mynetwork
 
+    # Distroless não tem curl/wget/sh — healthcheck "process-level"
+    # (o HTTP check real fica no workflow)
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/login >/dev/null || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
+      test: ["CMD", "/crudder-go", "--help"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
       start_period: 10s
 
 networks:
