@@ -9,34 +9,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Mock para VariableStartServerDefault
-var mockStartServerDefaultCalled bool
-
-func MockStartServerDefault() {
-	mockStartServerDefaultCalled = true
-}
-
 func TestRunServer(t *testing.T) {
-	// Substitui temporariamente VariableStartServerDefault
+	called := false
+
 	original := VariableStartServerDefault
-	VariableStartServerDefault = MockStartServerDefault
+	VariableStartServerDefault = func() { called = true }
 	defer func() { VariableStartServerDefault = original }()
 
-	// Executa runServer
-	mockStartServerDefaultCalled = false
 	runServer()
 
-	// Verifica se MockStartServerDefault foi chamado
-	assert.True(t, mockStartServerDefaultCalled, "MockStartServerDefault não foi chamado")
+	assert.True(t, called, "VariableStartServerDefault não foi chamado via runServer")
+}
+
+func TestMainFn(t *testing.T) {
+	called := false
+
+	original := VariableStartServerDefault
+	VariableStartServerDefault = func() { called = true }
+	defer func() { VariableStartServerDefault = original }()
+
+	mainFn()
+
+	assert.True(t, called, "VariableStartServerDefault não foi chamado via mainFn")
+}
+
+func TestMain_callsMainFn(t *testing.T) {
+	called := false
+
+	originalMainFn := mainFn
+	mainFn = func() { called = true }
+	defer func() { mainFn = originalMainFn }()
+
+	main()
+
+	assert.True(t, called, "main() não chamou mainFn()")
 }
 
 func TestStartServer(t *testing.T) {
 	mockServer := &MockServerInterface{}
 
-	// Usa StartServer com o mock
 	crudder.StartServer(mockServer)
 
-	// Verifica se ListenAndServe foi chamado
 	assert.True(t, mockServer.Called, "ListenAndServe não foi chamado")
 }
 
@@ -49,21 +62,4 @@ type MockServerInterface struct {
 func (m *MockServerInterface) ListenAndServe(addr string, handler http.Handler) error {
 	m.Called = true
 	return nil
-}
-
-func TestMainFunctionCallsStartServerDefault(t *testing.T) {
-	originalMainFn := mainFn
-	originalStart := VariableStartServerDefault
-	defer func() {
-		mainFn = originalMainFn
-		VariableStartServerDefault = originalStart
-	}()
-
-	called := false
-	VariableStartServerDefault = func() { called = true }
-	mainFn = func() { VariableStartServerDefault() }
-
-	mainFn()
-
-	assert.True(t, called, "mainFn não chamou VariableStartServerDefault")
 }
