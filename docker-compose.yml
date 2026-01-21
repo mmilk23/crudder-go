@@ -11,21 +11,26 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - mynetwork
+    networks: [mynetwork]
     healthcheck:
-      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent" ]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent" ]
       interval: 5s
       timeout: 3s
       retries: 30
       start_period: 20s
     restart: unless-stopped
 
-    # Expor MySQL no HOST apenas quando você quiser (ex.: local)
-    # Use: docker compose --profile dev up -d
-    profiles: [ "dev" ]
+  # Só para DEV: expõe a porta no host
+  mysql_dev_ports:
+    image: mysql:8.0
+    profiles: ["dev"]
+    depends_on:
+      mysql:
+        condition: service_started
+    network_mode: service:mysql
     ports:
       - "3306:3306"
+    command: ["bash","-lc","echo 'mysql ports exposed via profile dev'; sleep infinity"]
 
   crudder:
     build:
@@ -43,14 +48,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    networks:
-      - mynetwork
-    healthcheck:
-      test: [ "CMD", "/crudder-go", "--help" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+    networks: [mynetwork]
     restart: unless-stopped
 
 networks:
