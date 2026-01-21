@@ -10,6 +10,7 @@ on:
       - "docker-compose.yaml"
       - "init.sql"
       - ".env.example"
+      - ".github/workflows/compose-smoke.yml"
   push:
     branches: ["main"]
     paths:
@@ -18,6 +19,7 @@ on:
       - "docker-compose.yaml"
       - "init.sql"
       - ".env.example"
+      - ".github/workflows/compose-smoke.yml"
   workflow_dispatch:
 
 concurrency:
@@ -30,17 +32,35 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: "1"
+      COMPOSE_DOCKER_CLI_BUILD: "1"
+
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Show docker versions
+        run: |
+          docker version
+          docker compose version
 
       - name: Validate docker compose
         run: docker compose config -q
 
-      - name: Build and start
-        run: docker compose up -d --build
+      - name: Build and start (wait for healthchecks)
+        run: |
+          set -euo pipefail
+
+          # Usa --wait (compose v2) para aguardar healthcheck do MySQL.
+          # Se por algum motivo não estiver disponível, o comando falha e a etapa aborta mesmo.
+          docker compose up -d --build --wait --wait-timeout 180
 
       - name: Show containers
-        run: docker compose ps
+        run: |
+          docker compose ps
+          docker ps -a
 
       - name: Wait for app HTTP
         run: |
@@ -52,12 +72,20 @@ jobs:
               exit 0
             fi
 
-            # Se o MySQL não estiver rodando, falha cedo com logs úteis
+            # Falha cedo se algum serviço morrer
             if ! docker compose ps --status running | grep -qE '^\s*mysql\s'; then
               echo "MySQL is not running anymore"
               docker compose ps
               echo "---- mysql logs (tail) ----"
               docker compose logs --no-color --tail=300 mysql || true
+              exit 1
+            fi
+
+            if ! docker compose ps --status running | grep -qE '^\s*crudder\s'; then
+              echo "Crudder is not running anymore"
+              docker compose ps
+              echo "---- crudder logs (tail) ----"
+              docker compose logs --no-color --tail=300 crudder || true
               exit 1
             fi
 
@@ -69,7 +97,6 @@ jobs:
           docker compose logs --no-color
           exit 1
 
-      # Logs focados por serviço (quando falhar)
       - name: Logs (mysql) on failure
         if: failure()
         run: docker compose logs --no-color --tail=300 mysql
@@ -78,7 +105,6 @@ jobs:
         if: failure()
         run: docker compose logs --no-color --tail=300 crudder
 
-      # Inspect dos containers (mostra ExitCode, Health, Error, etc.)
       - name: Debug containers on failure
         if: failure()
         run: |
@@ -88,4 +114,4 @@ jobs:
 
       - name: Teardown
         if: always()
-        run: docker compose down -v
+        run: docker compose down -v --remove-orphans

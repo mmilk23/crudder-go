@@ -1,17 +1,16 @@
-#./docker-compose.yml
+# ./docker-compose.yml
 services:
   mysql:
     image: mysql:8.0
     container_name: crudder_mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: crudder_db_test
-      MYSQL_USER: crudder_user
-      MYSQL_PASSWORD: crudder_p455w0rd
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-crudder_db_test}
+      MYSQL_USER: ${MYSQL_USER:-crudder_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-crudder_p455w0rd}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      # - ./my.cnf:/etc/mysql/my.cnf:ro  # remover
     networks:
       - mynetwork
     healthcheck:
@@ -20,21 +19,27 @@ services:
       timeout: 3s
       retries: 30
       start_period: 20s
+    restart: unless-stopped
+
+    # Expor MySQL no HOST apenas quando você quiser (ex.: local)
+    # Use: docker compose --profile dev up -d
+    profiles: [ "dev" ]
+    ports:
+      - "3306:3306"
 
   crudder:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: crudder_app
-    env_file:
-      - .env
     environment:
-      DB_HOST: mysql
-      DB_USER: crudder_user
-      DB_PASSWORD: crudder_p455w0rd
-      DB_NAME: crudder_db_test
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-crudder_user}
+      DB_PASSWORD: ${DB_PASSWORD:-crudder_p455w0rd}
+      DB_NAME: ${DB_NAME:-crudder_db_test}
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -46,6 +51,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    restart: unless-stopped
 
 networks:
   mynetwork:
@@ -53,5 +59,3 @@ networks:
 
 volumes:
   mysql_data:
-
-
