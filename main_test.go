@@ -1,3 +1,4 @@
+// main_test.go
 package main
 
 import (
@@ -48,4 +49,21 @@ type MockServerInterface struct {
 func (m *MockServerInterface) ListenAndServe(addr string, handler http.Handler) error {
 	m.Called = true
 	return nil
+}
+
+func TestMainFunctionCallsStartServerDefault(t *testing.T) {
+	originalMainFn := mainFn
+	originalStart := VariableStartServerDefault
+	defer func() {
+		mainFn = originalMainFn
+		VariableStartServerDefault = originalStart
+	}()
+
+	called := false
+	VariableStartServerDefault = func() { called = true }
+	mainFn = func() { VariableStartServerDefault() }
+
+	mainFn()
+
+	assert.True(t, called, "mainFn não chamou VariableStartServerDefault")
 }

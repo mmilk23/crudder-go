@@ -91,7 +91,7 @@ func (app *App) tableStructureHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// retreive db connection
+	// retrieve db connection
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		WriteErrorResponse(w, http.StatusUnauthorized, errUnauthorized)
