@@ -52,22 +52,34 @@ jobs:
       - name: Build and start (wait for healthchecks)
         run: |
           set -euo pipefail
-
-          # Usa --wait (compose v2) para aguardar healthcheck do MySQL.
+          # --wait aguarda serviços com healthcheck (no seu compose, MySQL).
           docker compose up -d --build --wait --wait-timeout 180
 
       - name: Show containers
         run: |
           docker compose ps
           docker ps -a
+          echo "---- port mapping (crudder) ----"
+          docker port crudder_app || true
 
-      - name: Wait for app HTTP
+      - name: Wait for app HTTP (IPv4, robust)
         run: |
           set -euo pipefail
 
+          URL="http://127.0.0.1:9091/login"
+
+          # Opcional: mostra rapidamente o estado inicial
+          echo "Probing: $URL"
+          echo "---- initial ps ----"
+          docker compose ps
+
           for i in {1..60}; do
-            if curl -fsS http://localhost:9091/login >/dev/null 2>&1; then
-              echo "App is responding"
+            # http_code=000 => não conectou
+            code="$(curl -4 -sS -o /dev/null -w "%{http_code}" "$URL" || true)"
+            if [[ "$code" != "000" ]]; then
+              echo "App is responding (HTTP $code)"
+              # Se quiser ser estrito: descomente abaixo e exija 200
+              # [[ "$code" == "200" ]] || (echo "Unexpected HTTP $code" && exit 1)
               exit 0
             fi
 
@@ -88,12 +100,23 @@ jobs:
               exit 1
             fi
 
+            # A cada 10 tentativas, mostra um status resumido pra facilitar debug
+            if (( i % 10 == 0 )); then
+              echo "Still waiting... attempt=$i"
+              docker compose ps
+              echo "---- crudder logs (tail=80) ----"
+              docker compose logs --no-color --tail=80 crudder || true
+            fi
+
             sleep 2
           done
 
           echo "Timed out waiting for app"
           docker compose ps
-          docker compose logs --no-color
+          echo "---- crudder logs (tail) ----"
+          docker compose logs --no-color --tail=300 crudder || true
+          echo "---- mysql logs (tail) ----"
+          docker compose logs --no-color --tail=200 mysql || true
           exit 1
 
       - name: Logs (mysql) on failure
