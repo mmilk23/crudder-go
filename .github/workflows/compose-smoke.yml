@@ -34,21 +34,49 @@ jobs:
       - name: Show containers
         run: docker compose ps
 
-      # Espera o app responder HTTP (o check "de verdade")
       - name: Wait for app HTTP
         run: |
           set -euo pipefail
+
           for i in {1..60}; do
             if curl -fsS http://localhost:8080/login >/dev/null 2>&1; then
               echo "App is responding"
               exit 0
             fi
+
+            # Se o MySQL não estiver rodando, falha cedo com logs úteis
+            if ! docker compose ps --status running | grep -qE '^\s*mysql\s'; then
+              echo "MySQL is not running anymore"
+              docker compose ps
+              echo "---- mysql logs (tail) ----"
+              docker compose logs --no-color --tail=300 mysql || true
+              exit 1
+            fi
+
             sleep 2
           done
+
           echo "Timed out waiting for app"
           docker compose ps
           docker compose logs --no-color
           exit 1
+
+      # Logs focados por serviço (quando falhar)
+      - name: Logs (mysql) on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=300 mysql
+
+      - name: Logs (crudder) on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=300 crudder
+
+      # Inspect dos containers (mostra ExitCode, Health, Error, etc.)
+      - name: Debug containers on failure
+        if: failure()
+        run: |
+          docker ps -a
+          docker inspect crudder_mysql || true
+          docker inspect crudder_app || true
 
       - name: Teardown
         if: always()
