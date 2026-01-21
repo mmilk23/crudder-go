@@ -40,9 +40,22 @@ jobs:
       - name: Test (coverage)
         run: go test -v -race -covermode=atomic -coverprofile=coverage.txt ./...
 
+      - name: Install go-junit-report
+        run: go install github.com/jstemmer/go-junit-report/v2@latest
+
+      - name: Generate JUnit report
+        run: |
+          mkdir -p test-reports
+          go test -v ./... 2>&1 | tee test-output.txt
+          cat test-output.txt | go-junit-report > junit-report.xml  
+
       - name: Upload coverage to Codecov
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.txt
+
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: coverage.txt    
