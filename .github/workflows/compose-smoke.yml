@@ -9,7 +9,15 @@ on:
       - "docker-compose.yml"
       - "docker-compose.yaml"
       - "init.sql"
-      - "my.cnf"
+      - ".env.example"
+  push:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "docker-compose.yaml"
+      - "init.sql"
+      - ".env.example"
   workflow_dispatch:
 
 concurrency:

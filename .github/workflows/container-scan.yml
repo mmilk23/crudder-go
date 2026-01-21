@@ -6,10 +6,17 @@ on:
     branches: ["main"]
     paths:
       - "Dockerfile"
+      - "go.mod"
+      - "go.sum"
+  push:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - "go.mod"
+      - "go.sum"
+  schedule:
+    - cron: "11 11 * * *"
   workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   scan:
