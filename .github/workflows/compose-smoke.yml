@@ -54,7 +54,6 @@ jobs:
           set -euo pipefail
 
           # Usa --wait (compose v2) para aguardar healthcheck do MySQL.
-          # Se por algum motivo não estiver disponível, o comando falha e a etapa aborta mesmo.
           docker compose up -d --build --wait --wait-timeout 180
 
       - name: Show containers
@@ -67,13 +66,13 @@ jobs:
           set -euo pipefail
 
           for i in {1..60}; do
-            if curl -fsS http://localhost:8080/login >/dev/null 2>&1; then
+            if curl -fsS http://localhost:9091/login >/dev/null 2>&1; then
               echo "App is responding"
               exit 0
             fi
 
-            # Falha cedo se algum serviço morrer
-            if ! docker compose ps --status running | grep -qE '^\s*mysql\s'; then
+            # Falha cedo se algum serviço morrer (checa SERVICES, não nome de container)
+            if ! docker compose ps --services --filter "status=running" | grep -qx mysql; then
               echo "MySQL is not running anymore"
               docker compose ps
               echo "---- mysql logs (tail) ----"
@@ -81,7 +80,7 @@ jobs:
               exit 1
             fi
 
-            if ! docker compose ps --status running | grep -qE '^\s*crudder\s'; then
+            if ! docker compose ps --services --filter "status=running" | grep -qx crudder; then
               echo "Crudder is not running anymore"
               docker compose ps
               echo "---- crudder logs (tail) ----"
