@@ -1,0 +1,50 @@
+name: Dependency Refresh
+
+on:
+  push:
+    branches:
+      - agent/fix-trivy-x-net-cve
+    paths:
+      - ".github/workflows/dependency-refresh.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: agent/fix-trivy-x-net-cve
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Update dependencies
+        run: |
+          go get -u ./...
+          go mod tidy
+          go list -m all
+
+      - name: Validate build and tests
+        run: |
+          go build ./...
+          go test -race ./...
+
+      - name: Commit refreshed modules
+        run: |
+          if git diff --quiet -- go.mod go.sum; then
+            echo "No dependency changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add go.mod go.sum
+          git commit -m "update Go dependencies"
+          git push
