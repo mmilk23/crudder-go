@@ -3,7 +3,7 @@ name: Container Scan
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "develop"]
     paths:
       - "Dockerfile"
       - ".dockerignore"
@@ -11,7 +11,7 @@ on:
       - "go.sum"
       - ".github/workflows/container-scan.yml"
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
     paths:
       - "Dockerfile"
       - ".dockerignore"
