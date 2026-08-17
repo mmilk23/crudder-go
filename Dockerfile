@@ -1,7 +1,7 @@
 #./Dockerfile
 
 # Stage 1: Build
-FROM golang:1.26 AS builder
+FROM golang:1.25.13 AS builder
 
 WORKDIR /app
 
@@ -19,6 +19,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 COPY --from=builder /app/crudder-go ./crudder-go
+COPY --from=builder /app/static ./static
 
 EXPOSE 8080
 USER nonroot:nonroot
