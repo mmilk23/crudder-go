@@ -19,6 +19,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 COPY --from=builder /app/crudder-go ./crudder-go
+COPY --from=builder /app/static ./static
 
 EXPOSE 8080
 USER nonroot:nonroot
