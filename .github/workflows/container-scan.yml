@@ -6,23 +6,30 @@ on:
     branches: ["main"]
     paths:
       - "Dockerfile"
+      - ".dockerignore"
       - "go.mod"
       - "go.sum"
+      - ".github/workflows/container-scan.yml"
   push:
     branches: ["main"]
     paths:
       - "Dockerfile"
+      - ".dockerignore"
       - "go.mod"
       - "go.sum"
+      - ".github/workflows/container-scan.yml"
   schedule:
     - cron: "11 11 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   scan:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - name: Build image
         run: docker build -t crudder-go:scan -f Dockerfile .

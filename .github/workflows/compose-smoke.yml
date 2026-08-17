@@ -8,6 +8,12 @@ on:
       - "Dockerfile"
       - "docker-compose.yml"
       - "docker-compose.yaml"
+      - "go.mod"
+      - "go.sum"
+      - "*.go"
+      - "crudder/**"
+      - "docs/**"
+      - "static/**"
       - "init.sql"
       - ".env.example"
       - ".github/workflows/compose-smoke.yml"
@@ -17,6 +23,12 @@ on:
       - "Dockerfile"
       - "docker-compose.yml"
       - "docker-compose.yaml"
+      - "go.mod"
+      - "go.sum"
+      - "*.go"
+      - "crudder/**"
+      - "docs/**"
+      - "static/**"
       - "init.sql"
       - ".env.example"
       - ".github/workflows/compose-smoke.yml"
@@ -39,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Show docker versions
         run: |
@@ -52,7 +64,6 @@ jobs:
       - name: Build and start (wait for healthchecks)
         run: |
           set -euo pipefail
-          # --wait aguarda serviços com healthcheck (no seu compose, MySQL).
           docker compose up -d --build --wait --wait-timeout 180
 
       - name: Show containers
@@ -68,22 +79,21 @@ jobs:
 
           URL="http://127.0.0.1:9091/login"
 
-          # Opcional: mostra rapidamente o estado inicial
           echo "Probing: $URL"
           echo "---- initial ps ----"
           docker compose ps
 
           for i in {1..60}; do
-            # http_code=000 => não conectou
             code="$(curl -4 -sS -o /dev/null -w "%{http_code}" "$URL" || true)"
-            if [[ "$code" != "000" ]]; then
+            if [[ "$code" == "200" ]]; then
               echo "App is responding (HTTP $code)"
-              # Se quiser ser estrito: descomente abaixo e exija 200
-              # [[ "$code" == "200" ]] || (echo "Unexpected HTTP $code" && exit 1)
               exit 0
             fi
 
-            # Falha cedo se algum serviço morrer (checa SERVICES, não nome de container)
+            if [[ "$code" != "000" ]]; then
+              echo "App responded with unexpected HTTP $code"
+            fi
+
             if ! docker compose ps --services --filter "status=running" | grep -qx mysql; then
               echo "MySQL is not running anymore"
               docker compose ps
@@ -100,9 +110,8 @@ jobs:
               exit 1
             fi
 
-            # A cada 10 tentativas, mostra um status resumido pra facilitar debug
             if (( i % 10 == 0 )); then
-              echo "Still waiting... attempt=$i"
+              echo "Still waiting... attempt=$i last_http=$code"
               docker compose ps
               echo "---- crudder logs (tail=80) ----"
               docker compose logs --no-color --tail=80 crudder || true

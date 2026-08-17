@@ -9,6 +9,13 @@ on:
       - "docker-compose.yml"
       - "docker-compose.yaml"
       - ".dockerignore"
+      - "go.mod"
+      - "go.sum"
+      - "*.go"
+      - "crudder/**"
+      - "docs/**"
+      - "static/**"
+      - ".github/workflows/docker.yml"
   push:
     branches: ["main"]
     paths:
@@ -16,6 +23,13 @@ on:
       - "docker-compose.yml"
       - "docker-compose.yaml"
       - ".dockerignore"
+      - "go.mod"
+      - "go.sum"
+      - "*.go"
+      - "crudder/**"
+      - "docs/**"
+      - "static/**"
+      - ".github/workflows/docker.yml"
   workflow_dispatch:
 
 concurrency:
@@ -29,7 +43,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - name: Validate docker compose
         run: docker compose config -q
@@ -41,10 +55,10 @@ jobs:
           failure-threshold: warning
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v4.2.0
 
       - name: Build image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.3.0
         with:
           context: .
           file: ./Dockerfile
