@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -311,13 +312,19 @@ func (app *App) createRecord(w http.ResponseWriter, r *http.Request, tableName s
 		return
 	}
 
+	keys := make([]string, 0, len(item))
+	for col := range item {
+		keys = append(keys, col)
+	}
+	sort.Strings(keys)
+
 	columns := make([]string, 0, len(item))
 	values := make([]interface{}, 0, len(item))
 	placeholders := make([]string, 0, len(item))
 
-	for col, val := range item {
+	for _, col := range keys {
 		columns = append(columns, col)
-		values = append(values, val)
+		values = append(values, item[col])
 		placeholders = append(placeholders, "?")
 	}
 
