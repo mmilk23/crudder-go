@@ -3,7 +3,7 @@ name: Compose Smoke Test
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "develop"]
     paths:
       - "Dockerfile"
       - "docker-compose.yml"
@@ -18,7 +18,7 @@ on:
       - ".env.example"
       - ".github/workflows/compose-smoke.yml"
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
     paths:
       - "Dockerfile"
       - "docker-compose.yml"
